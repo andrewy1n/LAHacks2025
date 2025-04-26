@@ -1,20 +1,22 @@
-import { useState } from 'react'
+// import { useState } from 'react'
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import './App.css'
-import TreeLoading from './pages/TreeLoading'
-import CodeReview from './pages/CodeReview';
-import Footprint from './pages/Footprint';
+import "./App.css";
+import Landing from "./pages/Landing";
+import TreeLoading from "./pages/TreeLoading";
+import CodeReview from "./pages/CodeReview";
+import Footprint from "./pages/Footprint";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/treeloading" element={<TreeLoading />} /> 
-        <Route path="/codereview" element={<CodeReview />} /> 
-        <Route path="/footprint" element={<Footprint />} /> 
+        <Route path="/treeloading" element={<TreeLoading />} />
+        <Route path="/codereview" element={<CodeReview />} />
+        <Route path="/footprint" element={<Footprint />} />
+        <Route path="/landing" element={<Landing />} />
       </Routes>
-    </BrowserRouter>    
+    </BrowserRouter>
   );
 }
 
-export default App
+export default App;

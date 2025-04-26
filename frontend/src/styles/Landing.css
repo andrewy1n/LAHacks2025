@@ -1,4 +1,4 @@
-.body {
+.landing-body {
   background-color: #1a2026;
   color: white;
   display: flex;
@@ -14,7 +14,7 @@
   inset: 0;
 }
 
-.title {
+.landing-title {
   font-size: 70px;
   margin-bottom: 10px;
   color: #489a54;
@@ -29,7 +29,7 @@ input {
   gap: 100px;
 }
 
-button {
+.landing-button {
   padding: 10px 20px;
   font-size: 16px;
   cursor: pointer;
