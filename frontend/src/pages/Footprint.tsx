@@ -6,6 +6,7 @@ import { PieChart } from "@mui/x-charts/PieChart";
 
 function Footprint() {
   const carbonemission = 0.12; // temp hardcoded. we will get this value from the backend
+  const particleNum = carbonemission * 100;
 
   const [, setAnimating] = React.useState(false);
 
@@ -14,12 +15,11 @@ function Footprint() {
       {
         src: deadleaf,
         size: 50,
-        weight: 5,
       },
     ],
     duration: 6500,
     fadeOut: false,
-    particleCount: carbonemission * 100, // this value changes based on our carbon footprint
+    particleCount: particleNum, // this value changes based on our carbon footprint
     rotate: true,
   });
 
@@ -36,12 +36,12 @@ function Footprint() {
     }, 150);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    //   eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div className="body">
-      <h1 className="title">Carbon Footprint Report</h1>
+    <div className="footprint-body">
+      <h1 className="footprint-title">Carbon Footprint Report</h1>
       <div className="content-container">
         <PieChart
           series={[
@@ -69,7 +69,7 @@ function Footprint() {
           </p>
         </div>
       </div>
-      <button>Fix Code!</button>
+      <button className="footprint-button">Decrease Footprint!</button>
     </div>
   );
 }

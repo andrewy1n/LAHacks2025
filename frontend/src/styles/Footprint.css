@@ -1,4 +1,4 @@
-.body {
+.footprint-body {
   background-color: #489a54;
   color: white;
   display: flex;
@@ -14,7 +14,7 @@
   inset: 0;
 }
 
-.title {
+.footprint-title {
   font-size: 70px;
   margin-bottom: 10px;
   color: white;
@@ -50,11 +50,11 @@
 }
 
 .emissions-description {
-  font-size: 18px;
+  font-size: px;
   margin-top: 10px;
 }
 
-button {
+.footprint-button {
   padding: 20px 40px;
   font-size: 20px;
   cursor: pointer;
