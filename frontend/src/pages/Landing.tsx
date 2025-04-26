@@ -18,9 +18,6 @@ function Landing() {
         <button onClick={handleInstallApp} className="landing-button">
           Install GitHub App
         </button>
-        Enter Github Repo Link:
-        <input name="githuburl" />
-        <button className="landing-button">Generate Report</button>
       </label>
     </div>
   );

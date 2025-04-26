@@ -5,6 +5,7 @@ import Landing from "./pages/Landing";
 import TreeLoading from "./pages/TreeLoading";
 import CodeReview from "./pages/CodeReview";
 import Footprint from "./pages/Footprint";
+import GitLink from "./pages/GitLink";
 import GetInstallationId from "./pages/GetInstallationId";
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/codereview" element={<CodeReview />} />
         <Route path="/footprint" element={<Footprint />} />
         <Route path="/landing" element={<Landing />} />
+        <Route path="/gitlink" element={<GitLink />} />
         <Route path="/github/setup" element={<GetInstallationId />} />
       </Routes>
     </BrowserRouter>

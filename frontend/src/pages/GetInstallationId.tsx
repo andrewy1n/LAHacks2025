@@ -10,7 +10,7 @@ export default function GetInstallationId() {
 
     if (installationId) {
       localStorage.setItem("installation_id", installationId);
-      navigate("/treeloading");
+      navigate("/gitlink");
     }
   }, [params, navigate]);
 
