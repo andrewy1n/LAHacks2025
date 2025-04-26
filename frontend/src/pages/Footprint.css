@@ -1,0 +1,13 @@
+.body {
+  background-color: #489a54;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  font-size: 20px;
+  margin: 0;
+  padding: 0;
+}

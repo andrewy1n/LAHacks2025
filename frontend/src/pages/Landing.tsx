@@ -10,7 +10,6 @@ function Landing() {
       <label>
         Enter Github Repo Link:
         <input name="githuburl" />
-        {/* <span> </span> */}
         <button>Generate Report</button>
       </label>
     </div>
