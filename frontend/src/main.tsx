@@ -4,6 +4,7 @@ import "./index.css";
 // import App from './App.tsx'
 // import Landing from "./pages/Landing.tsx";
 import Footprint from "./pages/Footprint.tsx";
+// import TreeLoading from "./pages/TreeLoading.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
