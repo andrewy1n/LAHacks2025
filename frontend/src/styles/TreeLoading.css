@@ -1,0 +1,65 @@
+.tree-loading-container {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #2f6240ff;
+    color: white;
+    gap: 2rem;
+    padding: 2rem; 
+    box-sizing: border-box; 
+  }
+  
+  .tree-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 3rem;
+    width: 100%;
+    max-width: 90rem;
+    justify-items: center;
+  }
+  
+  .tree-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 2px solid #2f6240ff; 
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .tree-image {
+    width: 15rem;
+    height: 15rem;
+    transition: all 0.5s ease;
+  }
+  
+  .tree-inactive {
+    opacity: 0.3;
+    filter: grayscale(100%);
+  }
+  
+  .tree-active {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  
+  .stage-heading {
+    margin-top: 1rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+    width: 10rem;
+    color: #86efac; 
+  }
+  
+  .final-message {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #bbf7d0; 
+    margin-top: 1.5rem;
+  }
+  
+  
