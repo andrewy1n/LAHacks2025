@@ -1,0 +1,50 @@
+.code-review-page {
+    min-height: 100vh;
+    padding: 2rem;
+    font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+  }
+  
+  .code-preview {
+    background-color: #1e1e1e; 
+    color: #d4d4d4;            
+    padding: 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    max-height: 600px;
+    white-space: pre-wrap;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.4); 
+  }
+  
+  .code-preview .keyword {
+    color: #569cd6; 
+  }
+  
+  .code-preview .function-name {
+    color: #dcdcaa; 
+  }
+  
+  .code-preview .string {
+    color: #ce9178; 
+  }
+  
+  .code-preview .comment {
+    color: #6a9955;
+    font-style: italic;
+  }
+  
+  .code-preview .variable {
+    color: #9cdcfe; 
+  }
+  
+  .diff2html-wrapper {
+    background-color: #ffffff;
+    font-size: 0.9rem;
+  }
+  
+  button {
+    font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+    font-size: 0.9rem;
+  }
+  

@@ -10,14 +10,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "diff-match-patch": "^1.0.5",
+    "diff2html": "^3.4.51",
     "react": "^19.0.0",
+    "react-code-blocks": "^0.1.6",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.5.2",
+    "react-syntax-highlighter": "^15.6.1",
     "use-confetti-svg": "^1.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@tailwindcss/postcss": "^4.1.4",
+    "@types/diff-match-patch": "^1.0.36",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@types/react-router-dom": "^5.3.3",
