@@ -1,0 +1,44 @@
+.body {
+  background-color: #1a2026;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  font-size: 20px;
+  margin: 0;
+  padding: 0;
+}
+
+.title {
+  font-size: 70px;
+  margin-bottom: 10px;
+  color: #489a54;
+}
+
+input {
+  margin-top: 10px;
+  margin-bottom: 20px;
+  padding: 3px;
+  /* height: 20px; */
+  font-size: 16px;
+  gap: 100px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  /* height: 40px; */
+  cursor: pointer;
+}
+
+label {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  font-size: 18px;
+}
