@@ -11,6 +11,7 @@ import json
 import re
 from pathlib import Path
 from pydantic import BaseModel
+from github_auth import create_and_push_branch
 
 client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 
@@ -151,10 +152,9 @@ async def analysis_generator(github_url: str):
         await asyncio.to_thread(Repo.clone_from, github_url, repo_path)
         yield "data: Repository cloned successfully\n\n"
 
-        # Process files with async generator
         async for msg in process_repository(repo_path):
             yield msg
-
+        
         yield "data: 🎉 All done!\n\n"
 
     except GitCommandError as e:
@@ -175,3 +175,14 @@ async def analyze_repository(github_url: str):
     response.headers["Cache-Control"] = "no-cache"
     response.headers["X-Accel-Buffering"] = "no"
     return response
+
+@app.post("/save-file")
+async def save_file(file_path: str, content: str):
+    with open(file_path, "w") as f:
+        f.write(content)
+    return {"message": "File saved successfully"}
+
+@app.post("/create-branch")
+async def create_branch(github_url: str, new_branch_name: str):
+    await asyncio.to_thread(create_and_push_branch, github_url, new_branch_name)
+    return {"message": "Branch created successfully"}
