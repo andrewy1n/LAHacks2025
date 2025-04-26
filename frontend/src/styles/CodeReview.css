@@ -48,3 +48,13 @@
     font-size: 0.9rem;
   }
   
+  .code-preview-filename {
+    background-color: #252526; 
+    color: #d4d4d4;
+    font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+    border-bottom: 1px solid #333;
+  }
