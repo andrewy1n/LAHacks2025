@@ -7,6 +7,8 @@ import { PieChart } from "@mui/x-charts/PieChart";
 function Footprint() {
   const [data, setData] = useState<any>(null);
   const [carbonemission, setCarbonemission] = useState<number | null>(null);
+  const [imagebytes, setimagebytes] = useState<number | null>(null);
+  const [codebytes, setcodebytes] = useState<number | null>(null);
   const [, setAnimating] = useState(false);
 
   useEffect(() => {
@@ -31,6 +33,8 @@ function Footprint() {
     };
     setData(hardcodedData);
     setCarbonemission(hardcodedData.carbon.carbon_per_view);
+    setimagebytes(hardcodedData.metrics.image_bytes);
+    setcodebytes(hardcodedData.metrics.code_bytes);
   }, []);
 
   const { runAnimation } = useConfetti({
@@ -67,9 +71,9 @@ function Footprint() {
           series={[
             {
               data: [
-                { id: 0, value: 10, label: "stuff 1" },
-                { id: 1, value: 15, label: "stuff 2" },
-                { id: 2, value: 20, label: "stuff 3" },
+                { id: 0, value: imagebytes ?? 0, label: "Image bytes" },
+                { id: 1, value: codebytes ?? 0, label: "Code bytes" },
+                // { id: 2, value: 20, label: "stuff 3" },
               ],
               innerRadius: 30,
               outerRadius: 150,
