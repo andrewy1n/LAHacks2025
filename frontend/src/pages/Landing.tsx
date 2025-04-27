@@ -11,9 +11,7 @@ function Landing() {
   return (
     <div className="landing-body">
       <h1 className="landing-title">RepoReleaf</h1>
-      <p>
-        Very cool description here that outlines the functionality and purpose
-      </p>
+      <p>Commit to Cleaner Code.</p>
       <label>
         <button onClick={handleInstallApp} className="landing-button">
           Install GitHub App
