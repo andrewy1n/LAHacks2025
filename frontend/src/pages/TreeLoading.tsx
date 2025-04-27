@@ -22,7 +22,7 @@ const stageHeadings = [
   "Generating Emissions and Efficiency Summary",
 ];
 
-const stageDurations = [1000, 2000, 1500, 2000, 3000, 2000];
+const stageDurations = [10000, 20000, 15000, 20000, 25000, 20000];
 
 export default function TreeLoading() {
   const navigate = useNavigate();
@@ -121,7 +121,7 @@ export default function TreeLoading() {
       }
 
       if (!matched) {
-        if (data.includes("🎉 All done")) {
+        if (data.includes("All done")) {
           console.log("[SSE] All done received!");
 
           console.log("[FINAL DATA BEFORE SETTING CONTEXT]", {

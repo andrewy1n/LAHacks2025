@@ -85,7 +85,7 @@ function findMax(numbers) {
 }
 
 function initializeApp() {
-  console.log("Initializing application... 🌿");
+  console.log("Initializing application...");
 }
 
 function trackEnergyUsage() {

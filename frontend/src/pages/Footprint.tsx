@@ -5,6 +5,7 @@ import deadleaf from "../assets/Leaf.svg";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { legendClasses } from "@mui/x-charts/ChartsLegend";
 import { useAnalysis } from "../contexts/AnalysisContext";
+import { useNavigate } from "react-router-dom";
 
 function Footprint() {
   const { carbon, metrics } = useAnalysis();
@@ -12,6 +13,7 @@ function Footprint() {
   const [imagebytes, setimagebytes] = useState<number>(0);
   const [codebytes, setcodebytes] = useState<number>(0);
   const [, setAnimating] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!metrics) return;
@@ -94,7 +96,12 @@ function Footprint() {
         </div>
       </div>
 
-      <button className="footprint-button">Decrease Footprint!</button>
+      <button
+        className="footprint-button"
+        onClick={() => navigate("/CodeReview")}
+      >
+        Decrease Footprint!
+      </button>
     </div>
   );
 }
