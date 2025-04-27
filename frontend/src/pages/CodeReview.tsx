@@ -1,125 +1,153 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { html } from "diff2html";
+import { createTwoFilesPatch } from "diff";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useAnalysis } from "../contexts/AnalysisContext";
+import { useCodeChanges } from "../contexts/CodeChangesContext";
 import "diff2html/bundles/css/diff2html.min.css";
 import "../styles/CodeReview.css";
 
+// Helper to decode \n
+function decodeNewlines(text: string) {
+  return text.replace(/\\n/g, "\n").replace(/\\"/g, '"');
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 export default function CodeReviewPage() {
+  const navigate = useNavigate();
+  const { files, repoUrl } = useAnalysis();
+  const { addFinalizedFile } = useCodeChanges();
+
+  const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [viewMode, setViewMode] = useState<"diff" | "original">("diff");
 
-  const diffString = `
-diff --git a/file.js b/file.js
-index 83db48f..bf269f4 100644
---- a/file.js
-+++ b/file.js
-@@ -1,11 +1,16 @@
- function greetUser(name) {
--  console.log("Hello " + name + "!");
-+  console.log("Hello, " + name + "!");
- }
- 
--function calculateSum(a, b) {
--  return a + b;
-+function calculateTotal(a, b) {
-+  return a + b + 0.5;
- }
- 
- function findMax(numbers) {
-   let max = numbers[0];
--  for (let i = 1; i < numbers.length; i++) {
--    if (numbers[i] > max) {
--      max = numbers[i];
--    }
--  }
--  return max;
-+  return Math.max(...numbers);
- }
-+
-+function trackEnergyUsage() {
-+  console.log("Tracking energy usage...");
-+}
-`;
+  const currentFile = files[currentFileIndex];
 
-  const originalCodeString = `
-function greetUser(name) {
-  console.log("Hello " + name + "!");
-}
-
-function calculateSum(a, b) {
-  return a + b;
-}
-
-function findMax(numbers) {
-  let max = numbers[0];
-  for (let i = 1; i < numbers.length; i++) {
-    if (numbers[i] > max) {
-      max = numbers[i];
+  useEffect(() => {
+    if (!files || files.length === 0) {
+      console.warn("No files to review!");
+      navigate("/landing");
     }
+  }, [files, navigate]);
+
+  if (!currentFile) {
+    return (
+      <div className="code-review-page p-6 min-h-screen">
+        <h1 className="text-2xl font-bold text-center">No files to review!</h1>
+      </div>
+    );
   }
-  return max;
-}
 
-function startApp() {
-  console.log("Starting application...");
-}
+  const diffString = createTwoFilesPatch(
+    currentFile.filename,
+    currentFile.filename,
+    decodeNewlines(currentFile.original.trim()),
+    decodeNewlines(currentFile.optimized.trim()),
+    "",
+    "",
+    { context: 3 }
+  );
 
-greetUser("Alice");
-console.log(calculateSum(5, 10));
-console.log(findMax([3, 7, 2, 9, 5]));
-startApp();
-`;
+  const saveFileToServer = async (filePath: string, content: string) => {
+    try {
+      const params = new URLSearchParams({
+        file_path: filePath,
+        content: content,
+      });
+  
+      const response = await fetch(`${API_BASE_URL}save-file?${params.toString()}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+  
+      if (!response.ok) throw new Error("Failed to save file");
+      console.log(`✅ Saved ${filePath} successfully with query parameters`);
+    } catch (err) {
+      console.error("Error saving file:", err);
+    }
+  };
+  
 
-  const newCodeString = `
-function greetUser(userName) {
-  console.log("Hello, " + userName + "!");
-}
+  const handleAcceptChanges = async () => {
+    console.log(`Accepted changes for file: ${currentFile.filename}`);
+    const optimizedContent = decodeNewlines(currentFile.optimized.trim());
 
-function calculateTotal(a, b) {
-  return a + b + 0.5;
-}
+    await saveFileToServer(currentFile.filename, optimizedContent);
+    addFinalizedFile({ filename: currentFile.filename, content: optimizedContent });
 
-function findMax(numbers) {
-  return Math.max(...numbers);
-}
-
-function initializeApp() {
-  console.log("Initializing application... 🌿");
-}
-
-function trackEnergyUsage() {
-  console.log("Tracking energy usage...");
-}
-
-greetUser("Alice");
-console.log(calculateTotal(5, 10));
-console.log(findMax([3, 7, 2, 9, 5]));
-initializeApp();
-trackEnergyUsage();
-`;
-
-  const handleAcceptChanges = () => {
-    console.log("Accepted changes!");
+    moveToNextFileOrFinish();
   };
 
-  const handleDeclineChanges = () => {
-    console.log("Declined changes.");
+  const handleDeclineChanges = async () => {
+    console.log(`Kept original for file: ${currentFile.filename}`);
+    const originalContent = decodeNewlines(currentFile.original.trim());
+
+    await saveFileToServer(currentFile.filename, originalContent);
+    addFinalizedFile({ filename: currentFile.filename, content: originalContent });
+
+    moveToNextFileOrFinish();
   };
 
-  const toggleViewMode = () => {
-    setViewMode(prev => (prev === "diff" ? "original" : "diff"));
+  const moveToNextFileOrFinish = () => {
+    if (currentFileIndex + 1 < files.length) {
+      setCurrentFileIndex((prev) => prev + 1);
+      setShowFullScreen(false);
+      setViewMode("diff");
+    } else {
+      setShowFullScreen(false);
+      setViewMode("diff");
+    }
   };
 
-  const handleDetailedChangesClick = () => {
-    setShowFullScreen(true);
-    setViewMode("diff");
+  const handleCreateBranch = async () => {
+    try {
+      const githubUrl = localStorage.getItem("github_repo_url");
+      const installationId = 65359170;
+  
+      if (!githubUrl || !installationId) {
+        alert("Missing GitHub URL or installation ID!");
+        return;
+      }
+  
+      const finalUrl = `${API_BASE_URL}/create-branch?github_url=${encodeURIComponent(githubUrl)}&installation_id=${encodeURIComponent(installationId)}`;
+      console.log("Calling create-branch with URL:", finalUrl);
+  
+      const response = await fetch(finalUrl, {
+        method: "POST",
+      });
+  
+      console.log("Response status:", response.status);
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Backend error text:", errorText);
+        throw new Error("Failed to create branch");
+      }
+  
+      console.log("✅ Successfully created branch!");
+      navigate("/branch-created-success"); // optional success page
+    } catch (err) {
+      console.error("Error creating branch:", err);
+      alert("Failed to create branch. See console for more.");
+    }
   };
+  
+
+
+  const isLastFile = currentFileIndex === files.length - 1;
 
   return (
     <div className="code-review-page p-6 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-center flex-1">Code Sustainability Improvements</h1>
+        <h1 className="text-2xl font-bold text-center flex-1">
+          Reviewing {currentFile.filename}
+        </h1>
 
         {showFullScreen && (
           <button
@@ -133,10 +161,9 @@ trackEnergyUsage();
 
       {!showFullScreen ? (
         <>
-          {/* Default preview screen */}
           <div className="diff-block-container border rounded overflow-auto max-h-[600px] p-0">
             <div className="file-header bg-gray-100 text-gray-800 px-4 py-2 font-mono text-sm border-b">
-              file.js [CHANGED]
+              {currentFile.filename} [CHANGED]
             </div>
             <SyntaxHighlighter
               language="javascript"
@@ -153,41 +180,58 @@ trackEnergyUsage();
                 marginTop: "0",
               }}
             >
-              {newCodeString.trim()}
+              {decodeNewlines(currentFile.optimized.trim())}
             </SyntaxHighlighter>
           </div>
 
           <div className="flex justify-between items-center mt-6">
-            <button
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-              onClick={handleDetailedChangesClick}
-            >
-              See Detailed Changes
-            </button>
+            {!isLastFile ? (
+              <>
+                <button
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                  onClick={handleDetailedChangesClick}
+                >
+                  See Detailed Changes
+                </button>
 
-            <div className="flex gap-2">
+                <div className="flex gap-2">
+                  <button
+                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+                    onClick={handleAcceptChanges}
+                  >
+                    Accept New Changes
+                  </button>
+                  <button
+                    className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
+                    onClick={handleDeclineChanges}
+                  >
+                    Keep Original
+                  </button>
+                </div>
+              </>
+            ) : (
               <button
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-                onClick={handleAcceptChanges}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded text-lg"
+                onClick={handleCreateBranch}
               >
-                Accept New Changes
+                Create Branch 🚀
               </button>
-              <button
-                className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
-                onClick={handleDeclineChanges}
-              >
-                Keep Original
-              </button>
-            </div>
+            )}
           </div>
         </>
       ) : (
         <>
-          {/* Detailed view screen */}
+          {/* Detailed diff screen */}
           <div className="diff-block-container border rounded overflow-auto max-h-[600px]">
             <div className="file-header bg-gray-100 text-gray-800 px-4 py-2 font-mono text-sm border-b">
-              file.js {viewMode === "diff" ? <span className="text-yellow-500 ml-2">CHANGED</span> : <span className="text-blue-500 ml-2">ORIGINAL</span>}
+              {currentFile.filename}{" "}
+              {viewMode === "diff" ? (
+                <span className="text-yellow-500 ml-2">CHANGED</span>
+              ) : (
+                <span className="text-blue-500 ml-2">ORIGINAL</span>
+              )}
             </div>
+
             {viewMode === "diff" ? (
               <div
                 className="diff2html-wrapper"
@@ -215,7 +259,7 @@ trackEnergyUsage();
                   marginTop: "0",
                 }}
               >
-                {originalCodeString.trim()}
+                {decodeNewlines(currentFile.original.trim())}
               </SyntaxHighlighter>
             )}
           </div>

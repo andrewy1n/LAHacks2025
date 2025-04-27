@@ -1,60 +1,105 @@
 .code-review-page {
-    min-height: 100vh;
-    padding: 2rem;
-    font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
-  }
-  
-  .code-preview {
-    background-color: #1e1e1e; 
-    color: #d4d4d4;            
-    padding: 1rem;
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    overflow-x: auto;
-    max-height: 600px;
-    white-space: pre-wrap;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.4); 
-  }
-  
-  .code-preview .keyword {
-    color: #569cd6; 
-  }
-  
-  .code-preview .function-name {
-    color: #dcdcaa; 
-  }
-  
-  .code-preview .string {
-    color: #ce9178; 
-  }
-  
-  .code-preview .comment {
-    color: #6a9955;
-    font-style: italic;
-  }
-  
-  .code-preview .variable {
-    color: #9cdcfe; 
-  }
-  
-  .diff2html-wrapper {
-    background-color: #ffffff;
-    font-size: 0.9rem;
-  }
-  
-  button {
-    font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
-    font-size: 0.9rem;
-  }
-  
-  .code-preview-filename {
-    background-color: #252526; 
-    color: #d4d4d4;
-    font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
-    font-size: 0.85rem;
-    padding: 0.5rem 1rem;
-    border-top-left-radius: 0.5rem;
-    border-top-right-radius: 0.5rem;
-    border-bottom: 1px solid #333;
-  }
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+}
+
+.code-preview {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 600px;
+  white-space: pre-wrap;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+.code-preview .keyword {
+  color: #569cd6;
+}
+
+.code-preview .function-name {
+  color: #dcdcaa;
+}
+
+.code-preview .string {
+  color: #ce9178;
+}
+
+.code-preview .comment {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.code-preview .variable {
+  color: #9cdcfe;
+}
+
+.diff2html-wrapper {
+  background-color: #ffffff;
+  font-size: 0.9rem;
+  overflow-x: auto; /* 🔥 Important for horizontal scrolling */
+  overflow-y: auto;
+  padding: 1rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* fix the diff block container wrapping the diff2html-wrapper */
+.diff-block-container {
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  overflow-x: auto; /* 🔥 Important */
+  overflow-y: auto;
+  max-height: 600px;
+  background: white;
+}
+
+/* make scrollbar cleaner */
+.diff-block-container::-webkit-scrollbar,
+.diff2html-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.diff-block-container::-webkit-scrollbar-thumb,
+.diff2html-wrapper::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 4px;
+}
+
+.diff-block-container::-webkit-scrollbar-track,
+.diff2html-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+button {
+  font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+.code-preview-filename {
+  background-color: #252526;
+  color: #d4d4d4;
+  font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  border-bottom: 1px solid #333;
+}
+
+/* optional: sticky header for file name when scrolling */
+.file-header {
+  background-color: #f8f8f8;
+  padding: 0.75rem 1rem;
+  font-weight: bold;
+  font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #ddd;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}

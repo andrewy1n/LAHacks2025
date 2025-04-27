@@ -24,6 +24,19 @@ const stageHeadings = [
 
 const stageDurations = [1000, 2000, 1500, 2000, 3000, 2000];
 
+// ✨ Helper to safely extract code field
+const extractCode = (value: string) => {
+  const match = value.match(/['"]code['"]\s*:\s*['"]([\s\S]*?)['"]\s*}$/);
+  if (match) {
+    return match[1]
+      .replace(/\\n/g, "\n")
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, "\\");
+  }
+  console.error("Failed to extract code from:", value);
+  return value;
+};
+
 export default function TreeLoading() {
   const navigate = useNavigate();
   const { repoUrl, setAnalysisData } = useAnalysis();
@@ -37,67 +50,66 @@ export default function TreeLoading() {
       navigate("/gitlink");
       return;
     }
-  
+
     const baseUrl = import.meta.env.VITE_API_URL;
     const fullUrl = `${baseUrl}analyze?github_url=${encodeURIComponent(repoUrl)}`;
-  
+
     console.log("Connecting to EventSource URL:", fullUrl);
-  
+
     const eventSource = new EventSourcePolyfill(fullUrl, {
       headers: {
         "ngrok-skip-browser-warning": "true",
       },
     });
-  
+
     eventSource.onopen = () => {
       console.log("[SSE Connection OPENED]");
     };
-  
+
     let issues: any[] = [];
     let metrics: any = null;
     let carbon: string | null = null;
     let files: { filename: string; original: string; optimized: string }[] = [];
-  
+
     const handlers: { [key: string]: (value: string) => void } = {
       carbon_per_view: (value) => {
         try {
-          carbon = JSON.parse(value).carbon_per_view.toFixed(4); 
-          console.log("carbon"+ carbon);
+          carbon = JSON.parse(value).carbon_per_view.toFixed(4);
         } catch (err) {
-          console.error("Failed to parse carbon_per_view", err);
+          console.error("Failed to parse carbon_per_view:", err);
         }
       },
       metrics: (value) => {
         try {
           metrics = JSON.parse(value);
-          console.log("value"+ value);
         } catch (err) {
-          console.error("Failed to parse metrics", err);
+          console.error("Failed to parse metrics:", err);
         }
       },
       issues: (value) => {
         try {
           issues = JSON.parse(value);
-          console.log("issues"+ issues);
         } catch (err) {
-          console.error("Failed to parse issues", err);
+          console.error("Failed to parse issues:", err);
         }
       },
       path: (value) => files.push({ filename: value, original: "", optimized: "" }),
       original: (value) => {
         const lastFile = files[files.length - 1];
-        if (lastFile) lastFile.original = value;
+        const extractedCode = extractCode(value);
+        if (lastFile) lastFile.original = extractedCode;
       },
       optimized: (value) => {
         const lastFile = files[files.length - 1];
-        if (lastFile) lastFile.optimized = value;
+        const extractedCode = extractCode(value);
+        if (lastFile) lastFile.optimized = extractedCode;
       },
     };
-  
+
     eventSource.onmessage = (event) => {
       const data = event.data;
       console.log("[SSE]", data);
-  
+
       let matched = false;
       for (const key in handlers) {
         if (data.startsWith(`${key}:`)) {
@@ -107,11 +119,10 @@ export default function TreeLoading() {
           break;
         }
       }
-  
+
       if (!matched) {
         if (data.includes("🎉 All done")) {
           console.log("[SSE] All done received!");
-
           console.log("[FINAL DATA BEFORE SETTING CONTEXT]", {
             carbon,
             metrics,
@@ -120,32 +131,31 @@ export default function TreeLoading() {
           });
 
           eventSource.close();
-  
+
           setAnalysisData({
             carbon,
             issues,
             metrics,
             files,
           });
-  
+
           setAnalysisComplete(true);
         } else {
           console.log("[SSE PROGRESS LOG]", data);
         }
       }
     };
-  
+
     eventSource.onerror = (err) => {
       console.error("[SSE ERROR]", err);
       eventSource.close();
       setAnalysisComplete(true);
     };
-  
+
     return () => {
       eventSource.close();
     };
   }, [navigate, repoUrl, setAnalysisData]);
-  
 
   useEffect(() => {
     if (currentStage < treeImages.length) {
@@ -186,4 +196,5 @@ export default function TreeLoading() {
     </div>
   );
 }
+
 
