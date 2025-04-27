@@ -70,7 +70,7 @@ async def generate_optimized_code(original_content: str, issue: Dict) -> str | N
     Original code:
     {original_content}
     
-    Return only the optimized code without explanations.
+    Return the entire file that includes the optimized code without explanations.
     Preserve functionality while implementing improvements.
     """
     try:
@@ -79,6 +79,7 @@ async def generate_optimized_code(original_content: str, issue: Dict) -> str | N
             model="gemini-2.0-flash-lite",
             contents=prompt
         )
+        print(response.text)
         return response.text
     except Exception as e:
         print(f"Error generating optimized code: {str(e)}")
@@ -114,9 +115,11 @@ async def generate_code(repo_path: str, frontend_dir: str, issues: List[Dict[str
             
             optimized = await generate_optimized_code(content, issue)
             if optimized:
+                content = {"code": content}
+                optimized = {"code": extract_codeblock_content(optimized)}
                 yield f"data: path: {os.path.join(frontend_dir, filename)}\n\n"
                 yield f"data: original: {content}\n\n"
-                yield f"data: optimized: {extract_codeblock_content(optimized)}\n\n"
+                yield f"data: optimized: {optimized}\n\n"
                 
                 # # Save to database
                 # with sqlite3.connect('files.db') as conn:
@@ -162,12 +165,12 @@ async def analysis_generator(github_url: str):
                 yield f"data: carbon_per_view: {carbon_per_view['carbon_per_view']}\n\n"
             elif msg["type"] == "issue":
                 issues.append(msg["data"])
-                yield f"data: issue: {json.dumps(msg['data'])}\n\n"
+                # yield f"data: issue: {json.dumps(msg['data'])}\n\n"
             elif msg["type"] == "result":
                 metrics = msg["metrics"]
                 issues = msg["issues"]
                 yield f"data: metrics: {json.dumps(metrics)}\n\n"
-                yield f"data: issues: {json.dumps(issues)}\n\n"
+                # yield f"data: issues: {json.dumps(issues)}\n\n"
         
         async for msg in generate_code(repo_path, frontend_dir, issues):
             if msg.startswith("issue:") or msg.startswith("path:") or msg.startswith("original:") or msg.startswith("optimized:"):
