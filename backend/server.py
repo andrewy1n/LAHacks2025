@@ -135,15 +135,6 @@ async def analysis_generator(github_url: str):
     repo_name = github_url.rstrip('/').split('/')[-1].replace('.git', '')
     repo_path = os.path.join(temp_dir, repo_name)
 
-    # Create a keep-alive task
-    async def keep_alive():
-        while True:
-            await asyncio.sleep(15)
-            yield "data: 🔄 Still analyzing...\n\n"
-
-    # Start the keep-alive task
-    keep_alive_task = keep_alive()
-
     try:
         yield "data: Cloning repository...\n\n"
         await asyncio.to_thread(Repo.clone_from, github_url, repo_path)
@@ -163,13 +154,6 @@ async def analysis_generator(github_url: str):
 
         issues = []
         async for msg in parse(os.path.join(repo_path, frontend_dir)):
-            # Send keep-alive message if available
-            try:
-                keep_alive_msg = await keep_alive_task.__anext__()
-                yield keep_alive_msg
-            except StopAsyncIteration:
-                pass
-
             if msg["type"] == "progress":
                 yield f"data: {msg['message']}\n\n"
             elif msg["type"] == "metrics":
@@ -186,13 +170,6 @@ async def analysis_generator(github_url: str):
                 yield f"data: issues: {json.dumps(issues)}\n\n"
         
         async for msg in generate_code(repo_path, frontend_dir, issues):
-            # Send keep-alive message if available
-            try:
-                keep_alive_msg = await keep_alive_task.__anext__()
-                yield keep_alive_msg
-            except StopAsyncIteration:
-                pass
-
             if msg.startswith("issue:") or msg.startswith("path:") or msg.startswith("original:") or msg.startswith("optimized:"):
                 yield f"data: {msg}"
             else:
