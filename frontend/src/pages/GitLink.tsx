@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { EventSourcePolyfill } from 'event-source-polyfill';
 
 function GitLink() {
   const [repoUrl, setRepoUrl] = useState("");
@@ -17,11 +18,15 @@ function GitLink() {
     setIsAnalyzing(true);
 
     const baseUrl = import.meta.env.VITE_API_URL; // No modification here!
-    const fullUrl = `${baseUrl}/analyze?github_url=${encodeURIComponent(repoUrl)}`;
+    const fullUrl = `${baseUrl}analyze?github_url=${encodeURIComponent(repoUrl)}`;
 
     console.log("Connecting to EventSource URL:", fullUrl);
-
-    const eventSource = new EventSource(fullUrl);
+    
+    const eventSource = new EventSourcePolyfill(fullUrl, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
 
     let issues: any[] = [];
     let metrics: any = null;
