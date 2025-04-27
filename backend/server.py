@@ -57,6 +57,11 @@ def extract_json_from_llm_response(response: str):
                 print("JSON parsing error:", e)
         return None
 
+def extract_codeblock_content(text):
+    pattern = r'```(?:[a-zA-Z]*)\n?(.*?)\n?```'
+    matches = re.findall(pattern, text, re.DOTALL)
+    return matches[0].strip() if matches else text
+
 async def generate_optimized_code(original_content: str, issue: Dict) -> str | None:
     prompt = f"""
     Optimize this code based on sustainability suggestions:
@@ -79,7 +84,7 @@ async def generate_optimized_code(original_content: str, issue: Dict) -> str | N
         print(f"Error generating optimized code: {str(e)}")
         return None
 
-async def generate_code(repo_path: str, issues: List[Dict[str, Any]]):
+async def generate_code(repo_path: str, frontend_dir: str, issues: List[Dict[str, Any]]):
     CODE_EXTENSIONS = {'.html', '.css', '.js', '.ts', '.jsx', '.tsx'}
     
     for issue in issues:
@@ -95,7 +100,7 @@ async def generate_code(repo_path: str, issues: List[Dict[str, Any]]):
         yield f"data: Generating code suggestions for {filename}\n\n"
         
         try:
-            full_path = os.path.join(repo_path, filename)
+            full_path = os.path.join(repo_path, frontend_dir, filename)
             if not os.path.exists(full_path):
                 yield f"data: File not found: {filename}\n\n"
                 continue
@@ -109,16 +114,16 @@ async def generate_code(repo_path: str, issues: List[Dict[str, Any]]):
             
             optimized = await generate_optimized_code(content, issue)
             if optimized:
-                yield f"path: {filename}\n\n"
+                yield f"path: {os.path.join(frontend_dir, filename)}\n\n"
                 yield f"original: {content}\n\n"
-                yield f"optimized: {optimized}\n\n"
+                yield f"optimized: {extract_codeblock_content(optimized)}\n\n"
                 
-                # Save to database
-                with sqlite3.connect('files.db') as conn:
-                    c = conn.cursor()
-                    c.execute('INSERT OR REPLACE INTO files (file_path, content) VALUES (?, ?)', 
-                             (filename, optimized))
-                    conn.commit()
+                # # Save to database
+                # with sqlite3.connect('files.db') as conn:
+                #     c = conn.cursor()
+                #     c.execute('INSERT OR REPLACE INTO files (file_path, content) VALUES (?, ?)', 
+                #              (filename, optimized))
+                #     conn.commit()
             else:
                 yield f"data: Failed to generate optimized code for {filename}\n\n"
 
@@ -136,10 +141,10 @@ async def analysis_generator(github_url: str):
         yield "data: Repository cloned successfully\n\n"
 
         # Find the frontend directory
-        frontend_dir = None
+        frontend_dir = '.'
         for root, dirs, _ in os.walk(repo_path):
             if 'package.json' in os.listdir(root):
-                frontend_dir = root
+                frontend_dir = os.path.relpath(root, repo_path)
                 break
         
         if not frontend_dir:
@@ -148,7 +153,7 @@ async def analysis_generator(github_url: str):
         yield f"data: Using directory: {frontend_dir}\n\n"
 
         issues = []
-        async for msg in parse(frontend_dir):
+        async for msg in parse(os.path.join(repo_path, frontend_dir)):
             if msg["type"] == "progress":
                 yield f"data: {msg['message']}\n\n"
             elif msg["type"] == "metrics":
@@ -164,7 +169,7 @@ async def analysis_generator(github_url: str):
                 yield f"metrics: {json.dumps(metrics)}\n\n"
                 yield f"issues: {json.dumps(issues)}\n\n"
         
-        async for msg in generate_code(frontend_dir, issues):
+        async for msg in generate_code(repo_path, frontend_dir, issues):
             yield msg
         
         yield "data: 🎉 All done!\n\n"
@@ -192,12 +197,19 @@ async def analyze_repository(github_url: str):
 async def save_file(file_path: str, content: str):
     with sqlite3.connect('files.db') as conn:
         c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS files (
+                file_path TEXT PRIMARY KEY,
+                content TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         c.execute('INSERT OR REPLACE INTO files (file_path, content) VALUES (?, ?)', 
                  (file_path, content))
         conn.commit()
     return {"message": "File saved successfully"}
 
 @app.post("/create-branch")
-async def create_branch(github_url: str, installation_id: int):
-    await asyncio.to_thread(create_and_push_branch, github_url, "sustainability-improvements", installation_id)
+async def create_branch(github_url: str, installation_id: str):
+    await asyncio.to_thread(create_and_push_branch, github_url, "sustainability-improvements", installation_id= int(installation_id))
     return {"message": "Branch created successfully"}
