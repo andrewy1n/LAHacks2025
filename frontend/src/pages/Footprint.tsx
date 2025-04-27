@@ -6,9 +6,9 @@ import { PieChart } from "@mui/x-charts/PieChart";
 
 function Footprint() {
   const [data, setData] = useState<any>(null);
-  const [carbonemission, setCarbonemission] = useState<number | null>(null);
-  const [imagebytes, setimagebytes] = useState<number | null>(null);
-  const [codebytes, setcodebytes] = useState<number | null>(null);
+  const [carbonemission, setCarbonemission] = useState<number>(0);
+  const [imagebytes, setimagebytes] = useState<number>(0);
+  const [codebytes, setcodebytes] = useState<number>(0);
   const [, setAnimating] = useState(false);
 
   useEffect(() => {
@@ -62,6 +62,9 @@ function Footprint() {
   if (!data || carbonemission === null) {
     return <div>Loading...</div>;
   }
+
+  localStorage.setItem("carbon_emission_old", carbonemission.toString());
+  localStorage.setItem("total_bytes_old", (imagebytes + codebytes).toString());
 
   return (
     <div className="footprint-body">

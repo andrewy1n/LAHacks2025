@@ -6,6 +6,7 @@ import TreeLoading from "./pages/TreeLoading";
 import CodeReview from "./pages/CodeReview";
 import Footprint from "./pages/Footprint";
 import GitLink from "./pages/GitLink";
+import SummaryReport from "./pages/SummaryReport";
 import GetInstallationId from "./pages/GetInstallationId";
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/footprint" element={<Footprint />} />
         <Route path="/landing" element={<Landing />} />
         <Route path="/gitlink" element={<GitLink />} />
+        <Route path="/summary" element={<SummaryReport />} />
         <Route path="/github/setup" element={<GetInstallationId />} />
       </Routes>
     </BrowserRouter>
