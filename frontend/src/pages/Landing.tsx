@@ -10,7 +10,7 @@ function Landing() {
 
   return (
     <div className="landing-body">
-      <h1 className="landing-title">RepoReleaf</h1>
+      <h1 className="landing-title">RepoReLeaf</h1>
       <p>Commit to Cleaner Code.</p>
       <label>
         <button onClick={handleInstallApp} className="landing-button">

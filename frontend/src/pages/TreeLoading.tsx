@@ -22,7 +22,7 @@ const stageHeadings = [
   "Generating Emissions and Efficiency Summary",
 ];
 
-const stageDurations = [1000, 2000, 1500, 2000, 3000, 2000];
+const stageDurations = [10000, 20000, 15000, 20000, 25000, 20000];
 
 // ✨ Helper to safely extract code field
 const extractCode = (value: string) => {
@@ -74,7 +74,17 @@ export default function TreeLoading() {
     const handlers: { [key: string]: (value: string) => void } = {
       carbon_per_view: (value) => {
         try {
-          carbon = JSON.parse(value).carbon_per_view.toFixed(4);
+          if (!value) {
+            throw new Error("carbon_per_view value is empty or undefined.");
+          }
+          const parsed = parseFloat(value);
+          if (isNaN(parsed)) {
+            throw new Error(
+              "carbon_per_view value is not a valid number: " + value
+            );
+          }
+          carbon = Number(parsed.toFixed(4));
+          console.log("carbon", carbon);
         } catch (err) {
           console.error("Failed to parse carbon_per_view:", err);
         }
@@ -82,6 +92,7 @@ export default function TreeLoading() {
       metrics: (value) => {
         try {
           metrics = JSON.parse(value);
+          console.log("value" + value);
         } catch (err) {
           console.error("Failed to parse metrics:", err);
         }
@@ -93,7 +104,8 @@ export default function TreeLoading() {
           console.error("Failed to parse issues:", err);
         }
       },
-      path: (value) => files.push({ filename: value, original: "", optimized: "" }),
+      path: (value) =>
+        files.push({ filename: value, original: "", optimized: "" }),
       original: (value) => {
         const lastFile = files[files.length - 1];
         const extractedCode = extractCode(value);
@@ -121,7 +133,7 @@ export default function TreeLoading() {
       }
 
       if (!matched) {
-        if (data.includes("🎉 All done")) {
+        if (data.includes("All done")) {
           console.log("[SSE] All done received!");
           console.log("[FINAL DATA BEFORE SETTING CONTEXT]", {
             carbon,
@@ -164,7 +176,7 @@ export default function TreeLoading() {
       }, stageDurations[currentStage]);
       return () => clearTimeout(timer);
     } else if (analysisComplete) {
-      navigate("/summary");
+      navigate("/footprint");
     }
   }, [currentStage, analysisComplete, navigate]);
 
@@ -178,7 +190,9 @@ export default function TreeLoading() {
               <img
                 src={src}
                 alt={`Tree ${index + 1}`}
-                className={`tree-image ${isActive ? "tree-active" : "tree-inactive"}`}
+                className={`tree-image ${
+                  isActive ? "tree-active" : "tree-inactive"
+                }`}
               />
               {isActive && (
                 <p className="stage-heading">{stageHeadings[index]}</p>

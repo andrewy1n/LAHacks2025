@@ -3,44 +3,35 @@ import { useConfetti } from "use-confetti-svg";
 import "../styles/Footprint.css";
 import deadleaf from "../assets/Leaf.svg";
 import { PieChart } from "@mui/x-charts/PieChart";
+import { legendClasses } from "@mui/x-charts/ChartsLegend";
+import { useAnalysis } from "../contexts/AnalysisContext";
+import { useNavigate } from "react-router-dom";
 
 function Footprint() {
-  const [data, setData] = useState<any>(null);
+  const { carbon, metrics } = useAnalysis();
   const [carbonemission, setCarbonemission] = useState<number>(0);
   const [imagebytes, setimagebytes] = useState<number>(0);
   const [codebytes, setcodebytes] = useState<number>(0);
   const [, setAnimating] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const hardcodedData = {
-      metrics: {
-        total_bytes: 3425126,
-        image_bytes: 3404175,
-        code_bytes: 20951,
-      },
-      issues: [
-        {
-          type: "UnminifiedAsset",
-          file: "client/app/globals.css",
-          explanation:
-            "Refer to sustainable web design guidelines to address this issue.",
-        },
-      ],
-      carbon: {
-        carbon_per_view: 0.3057069846764207,
-        notes: "0.31 g CO₂ per view",
-      },
-    };
-    setData(hardcodedData);
-    setCarbonemission(hardcodedData.carbon.carbon_per_view);
-    setimagebytes(hardcodedData.metrics.image_bytes);
-    setcodebytes(hardcodedData.metrics.code_bytes);
-  }, []);
+    if (!metrics) return;
+    setCarbonemission(carbon ?? 0);
+    setimagebytes(metrics.image_bytes ?? 0);
+    setcodebytes(metrics.code_bytes ?? 0);
+
+    localStorage.setItem("carbon_emission_old", (carbon ?? 0).toString());
+    localStorage.setItem(
+      "total_bytes_old",
+      ((metrics.image_bytes ?? 0) + (metrics.code_bytes ?? 0)).toString()
+    );
+  }, [carbon, metrics]);
 
   const { runAnimation } = useConfetti({
     images: [{ src: deadleaf, size: 50 }],
     duration: 6500,
-    fadeOut: false,
+    // fadeOut: true,
     rotate: true,
     particleCount: carbonemission ? carbonemission * 100 : 30,
   });
@@ -56,15 +47,11 @@ function Footprint() {
     }, 150);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carbonemission]);
 
-  if (!data || carbonemission === null) {
+  if (!metrics || carbon === null || carbon === undefined) {
     return <div>Loading...</div>;
   }
-
-  localStorage.setItem("carbon_emission_old", carbonemission.toString());
-  localStorage.setItem("total_bytes_old", (imagebytes + codebytes).toString());
 
   return (
     <div className="footprint-body">
@@ -74,9 +61,8 @@ function Footprint() {
           series={[
             {
               data: [
-                { id: 0, value: imagebytes ?? 0, label: "Image bytes" },
-                { id: 1, value: codebytes ?? 0, label: "Code bytes" },
-                // { id: 2, value: 20, label: "stuff 3" },
+                { id: 0, value: imagebytes, label: "Image bytes" },
+                { id: 1, value: codebytes, label: "Code bytes" },
               ],
               innerRadius: 30,
               outerRadius: 150,
@@ -84,6 +70,18 @@ function Footprint() {
               cornerRadius: 2,
             },
           ]}
+          slotProps={{
+            legend: {
+              sx: {
+                gap: "16px",
+                [`.${legendClasses.mark}`]: {
+                  height: 31,
+                  width: 31,
+                },
+                fontSize: 20,
+              },
+            },
+          }}
           width={350}
           height={350}
         />
@@ -98,7 +96,12 @@ function Footprint() {
         </div>
       </div>
 
-      <button className="footprint-button">Decrease Footprint!</button>
+      <button
+        className="footprint-button"
+        onClick={() => navigate("/CodeReview")}
+      >
+        Decrease Footprint!
+      </button>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import gzip
 import re
 import json
 import logging
+import time
 from typing import List, Dict, Any
 from git import Repo
 from dotenv import load_dotenv
@@ -403,19 +404,33 @@ def check_guidelines_llm_batched(root_dir: str) -> List[Dict[str, Any]]:
     logger.info('LLM checks found %d issues', len(results))
     return results
 
-# Enrich all issues in one LLM call
-
+def keep_alive():
+    """Yield a keep-alive message every 10 seconds."""
+    last_message_time = time.time()
+    while True:
+        current_time = time.time()
+        if current_time - last_message_time >= 10:
+            last_message_time = current_time
+            yield "🔋 Analysis in progress..."
+        else:
+            yield None
 
 def enrich_all_issues(issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     logger.info('Enriching %d issues via LLM', len(issues))
     if not issues:
         return []
+    
+    # Initialize keep-alive
+    keep_alive_gen = keep_alive()
+    start_time = time.time()
+    
     try:
         validated = [BaseIssue(type=i['type'], file=i.get(
             'file')).model_dump() for i in issues]
     except ValidationError:
         logger.error('Issue validation failed; returning raw issues')
         return issues
+
     prompt = (
         "You are a web performance auditor, highly specialized in sustainable web developmet. For each issue, provide sustainability context:\n"
         "1. For code issues (NestedLoop, HighComplexity): Explain CPU impact\n"
@@ -429,11 +444,19 @@ def enrich_all_issues(issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     gemini_map = {(g['type'], g.get('file')): g for g in (
         resp if isinstance(resp, list) else [])}
     enriched = []
-    for base in validated:
+    
+    for idx, base in enumerate(validated):
+        # Send keep-alive message every 10 seconds
+        if msg := next(keep_alive_gen):
+            logger.info(msg)
+            # If using async context, you'd yield here
+            # For sync context, we'll just log and track time
+            
         key = (base['type'], base.get('file'))
         meta = gemini_map.get(key, {})
         issue = {
-            'type': base['type'], 'file': base.get('file'),
+            'type': base['type'], 
+            'file': base.get('file'),
             'severity': meta.get('severity', 'Medium'),
             'impact': meta.get('impact', 'Contributes to energy consumption'),
             'solution': meta.get('solution', 'Refer to guidelines'),
@@ -445,6 +468,12 @@ def enrich_all_issues(issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             enriched.append(EnrichedIssue(**issue).model_dump())
         except ValidationError:
             enriched.append(issue)
+            
+        # Manual timeout after 45 seconds
+        if time.time() - start_time > 45:
+            logger.warning("Enrichment timed out after 45 seconds")
+            break
+            
     logger.info('Enrichment completed: %d issues', len(enriched))
     return enriched
 
@@ -470,10 +499,28 @@ async def parse(repo_path: str):
         for issue in llm_issues:
             yield {"type": "issue", "data": issue}
 
-        # Combine and enrich issues
         all_issues = static_issues + llm_issues
         yield {"type": "progress", "message": "✨ Enriching findings..."}
-        enriched_issues = await asyncio.to_thread(enrich_all_issues, all_issues)
+        
+        last_keep_alive = time.time()
+        enriched_issues = []
+
+        all_issues = all_issues[:20] # cap at 20 issues
+        
+        # Process in chunks
+        chunk_size = 5
+        for i in range(0, len(all_issues), chunk_size):
+            chunk = all_issues[i:i+chunk_size]
+            enriched_chunk = await asyncio.to_thread(
+                enrich_all_issues, chunk
+            )
+            enriched_issues.extend(enriched_chunk)
+            
+            # Yield intermediate progress
+            if time.time() - last_keep_alive >= 10:
+                yield {"type": "progress", "message": "🔋 Analysis in progress..."}
+                last_keep_alive = time.time()
+
 
         # Sort and yield final results
         sorted_issues = sorted(
