@@ -504,6 +504,8 @@ async def parse(repo_path: str):
         
         last_keep_alive = time.time()
         enriched_issues = []
+
+        all_issues = all_issues[:20] # cap at 20 issues
         
         # Process in chunks
         chunk_size = 5
