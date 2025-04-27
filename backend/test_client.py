@@ -7,7 +7,7 @@ def timestamp():
 
 async def test_analyze():
     # Test with a public GitHub repository
-    github_url = "https://github.com/vishal-codes/vishal-codes.github.io"
+    github_url = "https://github.com/andrewy1n/DiamondHacks2025"
     
     async with httpx.AsyncClient(timeout=httpx.Timeout(300.0)) as client:
         try:

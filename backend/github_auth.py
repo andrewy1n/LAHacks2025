@@ -6,6 +6,7 @@ import jwt
 import time
 from git import Repo
 import tempfile
+import sqlite3
 
 load_dotenv()
 
@@ -45,10 +46,8 @@ def create_and_push_branch(github_url, new_branch_name, base_branch="main", inst
     # Authenticate
     jwt_token = generate_jwt()
     access_token = get_installation_access_token(jwt_token, installation_id)
-    # Parse repository info
     owner, repo = parse_github_url(github_url)
     
-    # Create authenticated git URL
     auth_github_url = f"https://x-access-token:{access_token}@github.com/{owner}/{repo}.git"
     
     # Create temporary directory for the clone
@@ -62,11 +61,31 @@ def create_and_push_branch(github_url, new_branch_name, base_branch="main", inst
             new_branch = repo.create_head(new_branch_name)
             new_branch.checkout()
             
+            # Apply changes from database
+            with sqlite3.connect('files.db') as conn:
+                c = conn.cursor()
+                c.execute('SELECT file_path, content FROM files')
+                files = c.fetchall()
+                
+                for file_path, content in files:
+                    full_path = os.path.join(temp_dir, file_path)
+                    os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                    with open(full_path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    repo.index.add(file_path)
+                
+                if files:
+                    repo.index.commit("Apply sustainability improvements")
+                    
+                # Clear the database
+                c.execute('DELETE FROM files')
+                conn.commit()
+            
             # Push the new branch
             origin = repo.remote(name='origin')
             origin.push(new_branch_name)
             
-            print(f"Successfully created and pushed branch '{new_branch_name}' to {github_url}")
+            print(f"Successfully created and pushed branch '{new_branch_name}' with {len(files)} file changes to {github_url}")
             return True
         except Exception as e:
             print(f"Error creating branch: {str(e)}")

@@ -1,7 +1,9 @@
 import os
 import shutil
+import sqlite3
 import tempfile
-from fastapi import FastAPI, HTTPException
+from typing import Any, Dict, List
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
@@ -11,18 +13,24 @@ import json
 import re
 from pathlib import Path
 from pydantic import BaseModel
+from estimator import estimate
 from github_auth import create_and_push_branch
+from parser import parse
 
 client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 
-
-class SustainabilitySuggestion(BaseModel):
-    description: str
-    urgency: str
-
-class GeminiAnalysisResponse(BaseModel):
-    file_path: str
-    suggestions: list[SustainabilitySuggestion]
+# Initialize SQLite database
+conn = sqlite3.connect('files.db')
+c = conn.cursor()
+c.execute('''
+    CREATE TABLE IF NOT EXISTS files (
+        file_path TEXT PRIMARY KEY,
+        content TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+''')
+conn.commit()
+conn.close()
 
 app = FastAPI()
 
@@ -49,35 +57,10 @@ def extract_json_from_llm_response(response: str):
                 print("JSON parsing error:", e)
         return None
 
-async def analyze_file_with_gemini(file_path: str, content: str) -> GeminiAnalysisResponse | None:
-    prompt = f"""
-    Analyze this file for sustainability improvements based on these guidelines:
-    {SUSTAINABILITY_GUIDELINES}
-    
-    File path: {file_path}
-    File content:
-    {content}
-    """
-    try:
-        # Wrap synchronous Gemini call in thread
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model="gemini-2.0-flash-lite",
-            contents=prompt,
-            config={
-                'response_mime_type': 'application/json',
-                'response_schema': GeminiAnalysisResponse,
-            },
-        )
-        return response.parsed
-    except Exception as e:
-        print(f"Error analyzing {file_path}: {str(e)}")
-        return None
-
-async def generate_optimized_code(original_content: str, suggestions: list[SustainabilitySuggestion]) -> str | None:
+async def generate_optimized_code(original_content: str, issue: Dict) -> str | None:
     prompt = f"""
     Optimize this code based on sustainability suggestions:
-    {json.dumps([s.model_dump() for s in suggestions])}
+    Issues Dictionary For Given Code: {issue}
     
     Original code:
     {original_content}
@@ -97,49 +80,51 @@ async def generate_optimized_code(original_content: str, suggestions: list[Susta
         print(f"Error generating optimized code: {str(e)}")
         return None
 
-async def process_repository(repo_path: str):
-    # Get files asynchronously
-    def collect_files():
-        files = []
-        for root, _, filenames in os.walk(repo_path):
-            if '.git' in root:
-                continue
-            for filename in filenames:
-                file_ext = Path(filename).suffix.lower()
-                if file_ext in ('.html', '.css', '.js', '.ts', '.jsx', '.tsx'):
-                    full_path = Path(root, filename)
-                    rel_path = str(full_path.relative_to(repo_path))
-                    files.append((str(root), filename, rel_path))
-        return files
-
-    file_list = await asyncio.to_thread(collect_files)
-
-    for root, filename, rel_path in file_list:
-        yield f"data: Analyzing {rel_path}\n\n"
-
+async def generate_code(repo_path: str, issues: List[Dict[str, Any]]):
+    CODE_EXTENSIONS = {'.html', '.css', '.js', '.ts', '.jsx', '.tsx'}
+    
+    for issue in issues:
+        filename = issue["file"]
+        if filename is None:
+            continue
+        file_ext = Path(filename).suffix.lower()
+        
+        if file_ext not in CODE_EXTENSIONS:
+            yield f"data: Skipping {filename} - not a code file\n\n"
+            continue
+            
+        yield f"data: Generating code suggestions for {filename}\n\n"
+        
         try:
-            # Async file read
+            full_path = os.path.join(repo_path, filename)
+            if not os.path.exists(full_path):
+                yield f"data: File not found: {filename}\n\n"
+                continue
+
             content = await asyncio.to_thread(
-                Path(root, filename).read_text, 
+                Path(full_path).read_text, 
                 encoding='utf-8'
             )
-            
-            analysis = await analyze_file_with_gemini(rel_path, content)
-            if not (analysis and analysis.suggestions):
-                yield f"data: No suggestions for {rel_path}\n\n"
-                continue
 
-            yield f"data: Got {len(analysis.suggestions)} suggestion(s) for {rel_path}\n\n"
+            yield f"issue: {issue}\n\n"
             
-            optimized = await generate_optimized_code(content, analysis.suggestions)
+            optimized = await generate_optimized_code(content, issue)
             if optimized:
-                yield f"data: Optimized code generated for {rel_path}\n\n"
-                yield f"__PATCH__\n{optimized}\n\n"
+                yield f"path: {filename}\n\n"
+                yield f"original: {content}\n\n"
+                yield f"optimized: {optimized}\n\n"
+                
+                # Save to database
+                with sqlite3.connect('files.db') as conn:
+                    c = conn.cursor()
+                    c.execute('INSERT OR REPLACE INTO files (file_path, content) VALUES (?, ?)', 
+                             (filename, optimized))
+                    conn.commit()
             else:
-                yield f"data: Failed to generate optimized code for {rel_path}\n\n"
+                yield f"data: Failed to generate optimized code for {filename}\n\n"
 
         except Exception as e:
-            yield f"data: Error processing {rel_path}: {str(e)}\n\n"
+            yield f"data: Error processing {filename}: {str(e)}\n\n"
 
 async def analysis_generator(github_url: str):
     temp_dir = tempfile.mkdtemp(prefix="repo_analysis_")
@@ -152,7 +137,36 @@ async def analysis_generator(github_url: str):
         await asyncio.to_thread(Repo.clone_from, github_url, repo_path)
         yield "data: Repository cloned successfully\n\n"
 
-        async for msg in process_repository(repo_path):
+        # Find the frontend directory
+        frontend_dir = None
+        for root, dirs, _ in os.walk(repo_path):
+            if 'package.json' in os.listdir(root):
+                frontend_dir = root
+                break
+        
+        if not frontend_dir:
+            frontend_dir = repo_path
+            
+        yield f"data: Using directory: {frontend_dir}\n\n"
+
+        issues = []
+        async for msg in parse(frontend_dir):
+            if msg["type"] == "progress":
+                yield f"data: {msg['message']}\n\n"
+            elif msg["type"] == "metrics":
+                metrics = msg["data"]
+                carbon_per_view = estimate(metrics["total_bytes"])
+                yield f"carbon_per_view: {carbon_per_view}\n\n"
+            elif msg["type"] == "issue":
+                issues.append(msg["data"])
+                yield f"issue: {json.dumps(msg['data'])}\n\n"
+            elif msg["type"] == "result":
+                metrics = msg["metrics"]
+                issues = msg["issues"]
+                yield f"metrics: {json.dumps(metrics)}\n\n"
+                yield f"issues: {json.dumps(issues)}\n\n"
+        
+        async for msg in generate_code(frontend_dir, issues):
             yield msg
         
         yield "data: 🎉 All done!\n\n"
@@ -178,11 +192,14 @@ async def analyze_repository(github_url: str):
 
 @app.post("/save-file")
 async def save_file(file_path: str, content: str):
-    with open(file_path, "w") as f:
-        f.write(content)
+    with sqlite3.connect('files.db') as conn:
+        c = conn.cursor()
+        c.execute('INSERT OR REPLACE INTO files (file_path, content) VALUES (?, ?)', 
+                 (file_path, content))
+        conn.commit()
     return {"message": "File saved successfully"}
 
 @app.post("/create-branch")
-async def create_branch(github_url: str, new_branch_name: str):
-    await asyncio.to_thread(create_and_push_branch, github_url, new_branch_name)
+async def create_branch(github_url: str, installation_id: int):
+    await asyncio.to_thread(create_and_push_branch, github_url, "sustainability-improvements", installation_id)
     return {"message": "Branch created successfully"}
