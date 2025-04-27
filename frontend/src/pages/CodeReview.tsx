@@ -58,28 +58,33 @@ export default function CodeReviewPage() {
         file_path: filePath,
         content: content,
       });
-  
-      const response = await fetch(`${API_BASE_URL}save-file?${params.toString()}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-  
+
+      const response = await fetch(
+        `${API_BASE_URL}save-file?${params.toString()}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
       if (!response.ok) throw new Error("Failed to save file");
       console.log(`✅ Saved ${filePath} successfully with query parameters`);
     } catch (err) {
       console.error("Error saving file:", err);
     }
   };
-  
 
   const handleAcceptChanges = async () => {
     console.log(`Accepted changes for file: ${currentFile.filename}`);
     const optimizedContent = decodeNewlines(currentFile.optimized.trim());
 
     await saveFileToServer(currentFile.filename, optimizedContent);
-    addFinalizedFile({ filename: currentFile.filename, content: optimizedContent });
+    addFinalizedFile({
+      filename: currentFile.filename,
+      content: optimizedContent,
+    });
 
     moveToNextFileOrFinish();
   };
@@ -89,7 +94,10 @@ export default function CodeReviewPage() {
     const originalContent = decodeNewlines(currentFile.original.trim());
 
     await saveFileToServer(currentFile.filename, originalContent);
-    addFinalizedFile({ filename: currentFile.filename, content: originalContent });
+    addFinalizedFile({
+      filename: currentFile.filename,
+      content: originalContent,
+    });
 
     moveToNextFileOrFinish();
   };
@@ -109,27 +117,29 @@ export default function CodeReviewPage() {
     try {
       const githubUrl = localStorage.getItem("github_repo_url");
       const installationId = 65359170;
-  
+
       if (!githubUrl || !installationId) {
         alert("Missing GitHub URL or installation ID!");
         return;
       }
-  
-      const finalUrl = `${API_BASE_URL}/create-branch?github_url=${encodeURIComponent(githubUrl)}&installation_id=${encodeURIComponent(installationId)}`;
+
+      const finalUrl = `${API_BASE_URL}create-branch?github_url=${encodeURIComponent(
+        githubUrl
+      )}&installation_id=${encodeURIComponent(installationId)}`;
       console.log("Calling create-branch with URL:", finalUrl);
-  
+
       const response = await fetch(finalUrl, {
         method: "POST",
       });
-  
+
       console.log("Response status:", response.status);
-  
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Backend error text:", errorText);
         throw new Error("Failed to create branch");
       }
-  
+
       console.log("✅ Successfully created branch!");
       navigate("/branch-created-success"); // optional success page
     } catch (err) {
@@ -137,8 +147,15 @@ export default function CodeReviewPage() {
       alert("Failed to create branch. See console for more.");
     }
   };
-  
 
+  const toggleViewMode = () => {
+    setViewMode((prev) => (prev === "diff" ? "original" : "diff"));
+  };
+
+  const handleDetailedChangesClick = () => {
+    setShowFullScreen(true);
+    setViewMode("diff");
+  };
 
   const isLastFile = currentFileIndex === files.length - 1;
 
