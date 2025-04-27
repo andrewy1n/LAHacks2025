@@ -309,11 +309,6 @@ def enrich_all_issues(issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 async def parse(repo_path: str):
     base_dir = repo_path
-    for sub in ('client', 'frontend'):
-        subdir = os.path.join(repo_path, sub)
-        if os.path.isdir(subdir):
-            base_dir = subdir
-            break
 
     try:
         # Yield metrics progress

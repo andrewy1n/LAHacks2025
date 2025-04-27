@@ -69,7 +69,6 @@ async def generate_optimized_code(original_content: str, issue: Dict) -> str | N
     Preserve functionality while implementing improvements.
     """
     try:
-        # Wrap synchronous Gemini call in thread
         response = await asyncio.to_thread(
             client.models.generate_content,
             model="gemini-2.0-flash-lite",
@@ -133,7 +132,6 @@ async def analysis_generator(github_url: str):
 
     try:
         yield "data: Cloning repository...\n\n"
-        # Clone repo in thread
         await asyncio.to_thread(Repo.clone_from, github_url, repo_path)
         yield "data: Repository cloned successfully\n\n"
 
@@ -159,7 +157,7 @@ async def analysis_generator(github_url: str):
                 yield f"carbon_per_view: {carbon_per_view}\n\n"
             elif msg["type"] == "issue":
                 issues.append(msg["data"])
-                yield f"issue: {json.dumps(msg['data'])}\n\n"
+                # yield f"issue: {json.dumps(msg['data'])}\n\n"
             elif msg["type"] == "result":
                 metrics = msg["metrics"]
                 issues = msg["issues"]
