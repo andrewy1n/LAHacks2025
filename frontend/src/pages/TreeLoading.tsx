@@ -37,32 +37,43 @@ export default function TreeLoading() {
       navigate("/gitlink");
       return;
     }
-  
+
     const baseUrl = import.meta.env.VITE_API_URL;
-    const fullUrl = `${baseUrl}analyze?github_url=${encodeURIComponent(repoUrl)}`;
-  
+    const fullUrl = `${baseUrl}analyze?github_url=${encodeURIComponent(
+      repoUrl
+    )}`;
+
     console.log("Connecting to EventSource URL:", fullUrl);
-  
+
     const eventSource = new EventSourcePolyfill(fullUrl, {
       headers: {
         "ngrok-skip-browser-warning": "true",
       },
     });
-  
+
     eventSource.onopen = () => {
       console.log("[SSE Connection OPENED]");
     };
-  
+
     let issues: any[] = [];
     let metrics: any = null;
     let carbon: string | null = null;
     let files: { filename: string; original: string; optimized: string }[] = [];
-  
+
     const handlers: { [key: string]: (value: string) => void } = {
       carbon_per_view: (value) => {
         try {
-          carbon = JSON.parse(value).carbon_per_view.toFixed(4); 
-          console.log("carbon"+ carbon);
+          if (!value) {
+            throw new Error("carbon_per_view value is empty or undefined.");
+          }
+          const parsed = parseFloat(value);
+          if (isNaN(parsed)) {
+            throw new Error(
+              "carbon_per_view value is not a valid number: " + value
+            );
+          }
+          carbon = Number(parsed.toFixed(4));
+          console.log("carbon", carbon);
         } catch (err) {
           console.error("Failed to parse carbon_per_view", err);
         }
@@ -70,7 +81,7 @@ export default function TreeLoading() {
       metrics: (value) => {
         try {
           metrics = JSON.parse(value);
-          console.log("value"+ value);
+          console.log("value" + value);
         } catch (err) {
           console.error("Failed to parse metrics", err);
         }
@@ -78,12 +89,13 @@ export default function TreeLoading() {
       issues: (value) => {
         try {
           issues = JSON.parse(value);
-          console.log("issues"+ issues);
+          console.log("issues" + issues);
         } catch (err) {
           console.error("Failed to parse issues", err);
         }
       },
-      path: (value) => files.push({ filename: value, original: "", optimized: "" }),
+      path: (value) =>
+        files.push({ filename: value, original: "", optimized: "" }),
       original: (value) => {
         const lastFile = files[files.length - 1];
         if (lastFile) lastFile.original = value;
@@ -93,11 +105,11 @@ export default function TreeLoading() {
         if (lastFile) lastFile.optimized = value;
       },
     };
-  
+
     eventSource.onmessage = (event) => {
       const data = event.data;
       console.log("[SSE]", data);
-  
+
       let matched = false;
       for (const key in handlers) {
         if (data.startsWith(`${key}:`)) {
@@ -107,7 +119,7 @@ export default function TreeLoading() {
           break;
         }
       }
-  
+
       if (!matched) {
         if (data.includes("🎉 All done")) {
           console.log("[SSE] All done received!");
@@ -120,32 +132,31 @@ export default function TreeLoading() {
           });
 
           eventSource.close();
-  
+
           setAnalysisData({
             carbon,
             issues,
             metrics,
             files,
           });
-  
+
           setAnalysisComplete(true);
         } else {
           console.log("[SSE PROGRESS LOG]", data);
         }
       }
     };
-  
+
     eventSource.onerror = (err) => {
       console.error("[SSE ERROR]", err);
       eventSource.close();
       setAnalysisComplete(true);
     };
-  
+
     return () => {
       eventSource.close();
     };
   }, [navigate, repoUrl, setAnalysisData]);
-  
 
   useEffect(() => {
     if (currentStage < treeImages.length) {
@@ -154,7 +165,7 @@ export default function TreeLoading() {
       }, stageDurations[currentStage]);
       return () => clearTimeout(timer);
     } else if (analysisComplete) {
-      navigate("/summary");
+      navigate("/footprint");
     }
   }, [currentStage, analysisComplete, navigate]);
 
@@ -168,7 +179,9 @@ export default function TreeLoading() {
               <img
                 src={src}
                 alt={`Tree ${index + 1}`}
-                className={`tree-image ${isActive ? "tree-active" : "tree-inactive"}`}
+                className={`tree-image ${
+                  isActive ? "tree-active" : "tree-inactive"
+                }`}
               />
               {isActive && (
                 <p className="stage-heading">{stageHeadings[index]}</p>
@@ -186,4 +199,3 @@ export default function TreeLoading() {
     </div>
   );
 }
-
