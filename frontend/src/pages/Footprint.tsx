@@ -3,6 +3,7 @@ import { useConfetti } from "use-confetti-svg";
 import "../styles/Footprint.css";
 import deadleaf from "../assets/Leaf.svg";
 import { PieChart } from "@mui/x-charts/PieChart";
+import { legendClasses } from "@mui/x-charts/ChartsLegend";
 
 function Footprint() {
   const [data, setData] = useState<any>(null);
@@ -84,6 +85,18 @@ function Footprint() {
               cornerRadius: 2,
             },
           ]}
+          slotProps={{
+            legend: {
+              sx: {
+                gap: "16px",
+                [`.${legendClasses.mark}`]: {
+                  height: 31,
+                  width: 31,
+                },
+                fontSize: 20,
+              },
+            },
+          }}
           width={350}
           height={350}
         />

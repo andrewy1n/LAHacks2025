@@ -108,7 +108,7 @@ trackEnergyUsage();
   };
 
   const toggleViewMode = () => {
-    setViewMode(prev => (prev === "diff" ? "original" : "diff"));
+    setViewMode((prev) => (prev === "diff" ? "original" : "diff"));
   };
 
   const handleDetailedChangesClick = () => {
@@ -119,7 +119,9 @@ trackEnergyUsage();
   return (
     <div className="code-review-page p-6 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-center flex-1">Code Sustainability Improvements</h1>
+        <h1 className="text-2xl font-bold text-center flex-1">
+          Code Sustainability Improvements
+        </h1>
 
         {showFullScreen && (
           <button
@@ -186,7 +188,12 @@ trackEnergyUsage();
           {/* Detailed view screen */}
           <div className="diff-block-container border rounded overflow-auto max-h-[600px]">
             <div className="file-header bg-gray-100 text-gray-800 px-4 py-2 font-mono text-sm border-b">
-              file.js {viewMode === "diff" ? <span className="text-yellow-500 ml-2">CHANGED</span> : <span className="text-blue-500 ml-2">ORIGINAL</span>}
+              file.js{" "}
+              {viewMode === "diff" ? (
+                <span className="text-yellow-500 ml-2">CHANGED</span>
+              ) : (
+                <span className="text-blue-500 ml-2">ORIGINAL</span>
+              )}
             </div>
             {viewMode === "diff" ? (
               <div
